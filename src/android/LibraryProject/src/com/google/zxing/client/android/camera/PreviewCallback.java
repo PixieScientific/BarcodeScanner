@@ -16,11 +16,19 @@
 
 package com.google.zxing.client.android.camera;
 
+import android.content.Context;
 import android.graphics.Point;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
 import android.hardware.Camera;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 
 final class PreviewCallback implements Camera.PreviewCallback {
 
@@ -29,9 +37,12 @@ final class PreviewCallback implements Camera.PreviewCallback {
   private final CameraConfigurationManager configManager;
   private Handler previewHandler;
   private int previewMessage;
+  private Context context;
 
-  PreviewCallback(CameraConfigurationManager configManager) {
+  PreviewCallback(CameraConfigurationManager configManager, Context context) {
     this.configManager = configManager;
+    this.context = context;
+    
   }
 
   void setHandler(Handler previewHandler, int previewMessage) {
@@ -44,6 +55,19 @@ final class PreviewCallback implements Camera.PreviewCallback {
     Point cameraResolution = configManager.getCameraResolution();
     Handler thePreviewHandler = previewHandler;
     if (cameraResolution != null && thePreviewHandler != null) {
+    	try {
+            Camera.Parameters parameters = camera.getParameters();
+            Camera.Size size = parameters.getPreviewSize();
+            YuvImage image = new YuvImage(data, parameters.getPreviewFormat(),
+              size.width, size.height, null);
+            File file = new File(context.getCacheDir().getPath() + "/panel.jpg");
+            FileOutputStream filecon = new FileOutputStream(file);
+            image.compressToJpeg(
+              new Rect(0, 0, image.getWidth(), image.getHeight()), 90,
+              filecon);
+          } catch (FileNotFoundException e) {
+            Log.d(TAG, "Unable to save panel.jpg");
+          }
       Message message = thePreviewHandler.obtainMessage(previewMessage, cameraResolution.x,
           cameraResolution.y, data);
       message.sendToTarget();

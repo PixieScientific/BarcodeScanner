@@ -23,9 +23,12 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import com.google.zxing.FakeR;
 
@@ -106,58 +109,63 @@ public final class ViewfinderView extends View {
       canvas.drawBitmap(resultBitmap, null, frame, paint);
     } else {
 
-      // Draw a red "laser scanner" line through the middle to show decoding is active
-      paint.setColor(laserColor);
-      paint.setAlpha(SCANNER_ALPHA[scannerAlpha]);
-      scannerAlpha = (scannerAlpha + 1) % SCANNER_ALPHA.length;
-      int middle = frame.height() / 2 + frame.top;
-      canvas.drawRect(frame.left + 2, middle - 1, frame.right - 1, middle + 2, paint);
-      
-      Rect previewFrame = cameraManager.getFramingRectInPreview();
-      float scaleX = frame.width() / (float) previewFrame.width();
-      float scaleY = frame.height() / (float) previewFrame.height();
+    	// Draw a two pixel solid black border inside the framing rect
+        paint.setColor(Color.rgb(51,188,255));
+        canvas.drawRect(frame.left, frame.top, frame.right + 1, frame.top + 2, paint);
+        canvas.drawRect(frame.left, frame.top + 2, frame.left + 2, frame.bottom - 1, paint);
+        canvas.drawRect(frame.right - 1, frame.top, frame.right + 1, frame.bottom - 1, paint);
+        canvas.drawRect(frame.left, frame.bottom - 1, frame.right + 1, frame.bottom + 1, paint);
 
-      List<ResultPoint> currentPossible = possibleResultPoints;
-      List<ResultPoint> currentLast = lastPossibleResultPoints;
-      int frameLeft = frame.left;
-      int frameTop = frame.top;
-      if (currentPossible.isEmpty()) {
-        lastPossibleResultPoints = null;
-      } else {
-        possibleResultPoints = new ArrayList<ResultPoint>(5);
-        lastPossibleResultPoints = currentPossible;
-        paint.setAlpha(CURRENT_POINT_OPACITY);
-        paint.setColor(resultPointColor);
-        synchronized (currentPossible) {
-          for (ResultPoint point : currentPossible) {
-            canvas.drawCircle(frameLeft + (int) (point.getX() * scaleX),
-                              frameTop + (int) (point.getY() * scaleY),
-                              POINT_SIZE, paint);
+        // Draw a red "laser scanner" line through the middle to show decoding is active
+        paint.setColor(Color.rgb(51,188,255));
+        int middleX = (width) / 2;
+        int middleY = (height) / 2;
+        canvas.save();
+        canvas.rotate(-90, middleX, middleY);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setTextSize(width/32);
+        canvas.drawText("Match the square to the panel", middleX + 0, middleY - frame.width() + 60, paint);
+        canvas.drawText("and wait a few seconds for the beep", middleX + 0, middleY - frame.width() + 120, paint);
+        canvas.restore();
+
+        Rect previewFrame = CameraManager.get().getFramingRectInPreview();
+        float scaleX = frame.width() / (float) previewFrame.width();
+        float scaleY = frame.height() / (float) previewFrame.height();
+
+        List<ResultPoint> currentPossible = possibleResultPoints;
+        List<ResultPoint> currentLast = lastPossibleResultPoints;
+        if (currentPossible.isEmpty()) {
+          lastPossibleResultPoints = null;
+        } else {
+          possibleResultPoints = new ArrayList<ResultPoint>(5);
+          lastPossibleResultPoints = currentPossible;
+          paint.setAlpha(CURRENT_POINT_OPACITY);
+          paint.setColor(resultPointColor);
+          synchronized (currentPossible) {
+            for (ResultPoint point : currentPossible) {
+              canvas.drawCircle(frame.left + (int) (point.getX() * scaleX),
+                                frame.top + (int) (point.getY() * scaleY),
+                                6.0f, paint);
+            }
           }
         }
-      }
-      if (currentLast != null) {
-        paint.setAlpha(CURRENT_POINT_OPACITY / 2);
-        paint.setColor(resultPointColor);
-        synchronized (currentLast) {
-          float radius = POINT_SIZE / 2.0f;
-          for (ResultPoint point : currentLast) {
-            canvas.drawCircle(frameLeft + (int) (point.getX() * scaleX),
-                              frameTop + (int) (point.getY() * scaleY),
-                              radius, paint);
+        if (currentLast != null) {
+          paint.setAlpha(CURRENT_POINT_OPACITY / 2);
+          paint.setColor(resultPointColor);
+          synchronized (currentLast) {
+            for (ResultPoint point : currentLast) {
+              canvas.drawCircle(frame.left + (int) (point.getX() * scaleX),
+                                frame.top + (int) (point.getY() * scaleY),
+                                3.0f, paint);
+            }
           }
         }
-      }
 
-      // Request another update at the animation interval, but only repaint the laser line,
-      // not the entire viewfinder mask.
-      postInvalidateDelayed(ANIMATION_DELAY,
-                            frame.left - POINT_SIZE,
-                            frame.top - POINT_SIZE,
-                            frame.right + POINT_SIZE,
-                            frame.bottom + POINT_SIZE);
+        // Request another update at the animation interval, but only repaint the laser line,
+        // not the entire viewfinder mask.
+        postInvalidateDelayed(ANIMATION_DELAY, frame.left, frame.top, frame.right, frame.bottom);
+      }
     }
-  }
 
   public void drawViewfinder() {
     Bitmap resultBitmap = this.resultBitmap;

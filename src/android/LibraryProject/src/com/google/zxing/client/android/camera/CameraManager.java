@@ -39,16 +39,20 @@ public final class CameraManager {
 
   private static final String TAG = CameraManager.class.getSimpleName();
 
-  private static final int MIN_FRAME_WIDTH = 240;
-  private static final int MIN_FRAME_HEIGHT = 240;
-  private static final int MAX_FRAME_WIDTH = 600;
-  private static final int MAX_FRAME_HEIGHT = 400;
+  private static final int MIN_FRAME_WIDTH = 400;
+  private static final int MIN_FRAME_HEIGHT = 400;
+  private static final int MAX_FRAME_WIDTH = 720;
+  private static final int MAX_FRAME_HEIGHT = 720;
+  
+  private static CameraManager cameraManager;
 
   private final Context context;
   private final CameraConfigurationManager configManager;
   private Camera camera;
   private AutoFocusManager autoFocusManager;
   private Rect framingRect;
+  public int topOffset;
+  public int leftOffset;
   private Rect framingRectInPreview;
   private boolean initialized;
   private boolean previewing;
@@ -59,11 +63,31 @@ public final class CameraManager {
    * clear the handler so it will only receive one message.
    */
   private final PreviewCallback previewCallback;
-
+  
+  /**
+   * Initializes this static object with the Context of the calling Activity.
+   *
+   * @param context The Activity which wants to use the camera.
+   */
+  public static void init(Context context) {
+    if (cameraManager == null) {
+      cameraManager = new CameraManager(context);
+    }
+  }
+  
+  /**
+   * Gets the CameraManager singleton instance.
+   *
+   * @return A reference to the CameraManager singleton.
+   */
+  public static CameraManager get() {
+    return cameraManager;
+  }
+  
   public CameraManager(Context context) {
     this.context = context;
     this.configManager = new CameraConfigurationManager(context);
-    previewCallback = new PreviewCallback(configManager);
+    previewCallback = new PreviewCallback(configManager, this.context);
   }
 
   /**
@@ -247,13 +271,20 @@ public final class CameraManager {
         // Called early, before init even finished
         return null;
       }
-      rect.left = rect.left * cameraResolution.x / screenResolution.x;
-      rect.right = rect.right * cameraResolution.x / screenResolution.x;
-      rect.top = rect.top * cameraResolution.y / screenResolution.y;
-      rect.bottom = rect.bottom * cameraResolution.y / screenResolution.y;
+      int pixelRatioX = cameraResolution.x/screenResolution.x;
+      int pixelRatioY = cameraResolution.y/screenResolution.y;
+      rect.left = rect.left * pixelRatioX;
+      rect.right = rect.right * pixelRatioX;
+      rect.top = rect.top * pixelRatioY;
+      rect.bottom = rect.bottom * pixelRatioY;
       framingRectInPreview = rect;
     }
     return framingRectInPreview;
+  }
+  
+  public Point getScreenResolution() {
+	Point screenResolution = configManager.getScreenResolution();
+	return screenResolution;
   }
 
   /**

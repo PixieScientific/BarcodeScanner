@@ -55,6 +55,7 @@ import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
@@ -62,6 +63,13 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.google.zxing.FakeR;
+import android.widget.ImageButton;
+import android.widget.ToggleButton;
+import android.hardware.Camera;
+import android.hardware.Camera.Parameters;
+import android.content.Context;
+import java.util.ArrayList;
+import java.util.List;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -109,7 +117,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
   private CaptureActivityHandler handler;
   private Result savedResultToShow;
   private ViewfinderView viewfinderView;
-  private TextView statusView;
   private View resultView;
   private Result lastResult;
   private boolean hasSurface;
@@ -171,7 +178,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     viewfinderView.setCameraManager(cameraManager);
 
     resultView = findViewById(fakeR.getId("id", "result_view"));
-    statusView = (TextView) findViewById(fakeR.getId("id", "status_view"));
 
     handler = null;
     lastResult = null;
@@ -225,9 +231,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         }
         
         String customPromptMessage = intent.getStringExtra(Intents.Scan.PROMPT_MESSAGE);
-        if (customPromptMessage != null) {
-          statusView.setText(customPromptMessage);
-        }
 
       } else if (dataString != null &&
                  dataString.contains(PRODUCT_SEARCH_URL_PREFIX) &&
@@ -481,7 +484,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 
   // Put up our own UI for how to handle the decoded contents.
   private void handleDecodeInternally(Result rawResult, ResultHandler resultHandler, Bitmap barcode) {
-    statusView.setVisibility(View.GONE);
     viewfinderView.setVisibility(View.GONE);
     resultView.setVisibility(View.VISIBLE);
 
@@ -582,9 +584,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     // Since this message will only be shown for a second, just tell the user what kind of
     // barcode was found (e.g. contact info) rather than the full contents, which they won't
     // have time to read.
-    if (resultDurationMS > 0) {
-      statusView.setText(getString(resultHandler.getDisplayTitle()));
-    }
+    
 
     if (copyToClipboard && !resultHandler.areContentsSecure()) {
       ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
@@ -603,6 +603,22 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
       intent.putExtra(Intents.Scan.RESULT, rawResult.toString());
       intent.putExtra(Intents.Scan.RESULT_FORMAT, rawResult.getBarcodeFormat().toString());
       byte[] rawBytes = rawResult.getRawBytes();
+	  ResultPoint[] points = rawResult.getResultPoints();
+	  String resultPointString = "?name=" ;
+	  for (ResultPoint point : points) {
+		  float pointX = point.getX()+CameraManager.get().leftOffset;
+		  float pointY = point.getY()+CameraManager.get().topOffset;
+		  resultPointString += "(" + pointX + "," + pointY + ")";
+	  }
+	  resultPointString += "?resultstring=";
+	  String resultText = rawResult.getText();
+	  int index = resultText.indexOf("?");
+	  String textQuery = resultText.substring(index);
+	  resultPointString += textQuery;
+	  long unixTime = System.currentTimeMillis() / 1000L;
+	  String timestamp = String.valueOf(unixTime);
+	  resultPointString += "?timestamp=" + timestamp;
+	  intent.putExtra(Intents.Scan.RESULT_POINTS, resultPointString);
       if (rawBytes != null && rawBytes.length > 0) {
         intent.putExtra(Intents.Scan.RESULT_BYTES, rawBytes);
       }
@@ -737,8 +753,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 
   private void resetStatusView() {
     resultView.setVisibility(View.GONE);
-    statusView.setText(fakeR.getId("string", "msg_default_status"));
-    statusView.setVisibility(View.VISIBLE);
     viewfinderView.setVisibility(View.VISIBLE);
     lastResult = null;
   }

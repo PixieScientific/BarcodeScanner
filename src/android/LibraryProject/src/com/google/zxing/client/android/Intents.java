@@ -31,7 +31,7 @@ public final class Intents {
      * Send this intent to open the Barcodes app in scanning mode, find a barcode, and return
      * the results.
      */
-    public static final String ACTION = "com.google.zxing.client.android.SCAN";
+	 public static final String ACTION = "com.phonegap.plugins.barcodescanner.SCAN";
 
     /**
      * By default, sending this will decode all barcodes that we understand. However it
@@ -115,6 +115,12 @@ public final class Intents {
     public static final String RESULT_FORMAT = "SCAN_RESULT_FORMAT";
 
     /**
+     * Call intent.getStringExtra(RESULT_POINTS) to determine which barcode format was found.
+     * See Contents.Format for possible values.
+     */
+     public static final String RESULT_POINTS = "RESULT_POINTS";
+    
+    /**
      * Call {@link android.content.Intent#getStringExtra(String)} with {@link #RESULT_UPC_EAN_EXTENSION}
      * to return the content of any UPC extension barcode that was also found. Only applicable
      * to {@link com.google.zxing.BarcodeFormat#UPC_A} and {@link com.google.zxing.BarcodeFormat#EAN_13}
@@ -170,7 +176,7 @@ public final class Intents {
      * Send this intent to encode a piece of data as a QR code and display it full screen, so
      * that another person can scan the barcode from your screen.
      */
-    public static final String ACTION = "com.google.zxing.client.android.ENCODE";
+    public static final String ACTION = "com.phonegap.plugins.barcodescanner.ENCODE";
 
     /**
      * The data to encode. Use {@link android.content.Intent#putExtra(String, String)} or
