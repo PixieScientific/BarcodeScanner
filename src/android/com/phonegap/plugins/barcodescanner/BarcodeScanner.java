@@ -33,6 +33,7 @@ public class BarcodeScanner extends CordovaPlugin {
     private static final String CANCELLED = "cancelled";
     private static final String FORMAT = "format";
     private static final String TEXT = "text";
+    private static final String RESULT_POINTS = "result_points";
     private static final String DATA = "data";
     private static final String TYPE = "type";
     private static final String SCAN_INTENT = "com.phonegap.plugins.barcodescanner.SCAN";
@@ -131,7 +132,9 @@ public class BarcodeScanner extends CordovaPlugin {
                 try {
                     obj.put(TEXT, intent.getStringExtra("SCAN_RESULT"));
                     obj.put(FORMAT, intent.getStringExtra("SCAN_RESULT_FORMAT"));
+                    obj.put(RESULT_POINTS, intent.getStringExtra("RESULT_POINTS"));
                     obj.put(CANCELLED, false);
+                    obj.put("imageURI", this.cordova.getActivity().getCacheDir().getPath() + "/panel.jpg" + intent.getStringExtra("RESULT_POINTS"));
                 } catch (JSONException e) {
                     Log.d(LOG_TAG, "This should never happen");
                 }
