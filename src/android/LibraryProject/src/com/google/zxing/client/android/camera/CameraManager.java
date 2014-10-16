@@ -36,9 +36,8 @@ import java.io.IOException;
  * @author dswitkin@google.com (Daniel Switkin)
  */
 public final class CameraManager {
-
+  
   private static final String TAG = CameraManager.class.getSimpleName();
-
   private static final int MIN_FRAME_WIDTH = 400;
   private static final int MIN_FRAME_HEIGHT = 400;
   private static final int MAX_FRAME_WIDTH = 720;
@@ -80,9 +79,12 @@ public final class CameraManager {
    *
    * @return A reference to the CameraManager singleton.
    */
-  public static CameraManager get() {
+  /*public static CameraManager get() {
+	  Log.i(TAG, "THIS LINE IS: ");
+	  Boolean nullcheckcm = cameraManager==null;
+  Log.i(TAG, nullcheckcm.toString());
     return cameraManager;
-  }
+  }*/
   
   public CameraManager(Context context) {
     this.context = context;

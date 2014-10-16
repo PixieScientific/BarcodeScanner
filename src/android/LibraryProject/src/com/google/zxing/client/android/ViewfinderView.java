@@ -48,7 +48,8 @@ public final class ViewfinderView extends View {
   private static final int CURRENT_POINT_OPACITY = 0xA0;
   private static final int MAX_RESULT_POINTS = 20;
   private static final int POINT_SIZE = 6;
-
+  private static final String LOG_TAG = "ViewFinderView";
+  
   private CameraManager cameraManager;
   private final Paint paint;
   private Bitmap resultBitmap;
@@ -127,8 +128,9 @@ public final class ViewfinderView extends View {
         canvas.drawText("Match the square to the panel", middleX + 0, middleY - frame.width() + 60, paint);
         canvas.drawText("and wait a few seconds for the beep", middleX + 0, middleY - frame.width() + 120, paint);
         canvas.restore();
-
-        Rect previewFrame = CameraManager.get().getFramingRectInPreview();
+        Log.i(LOG_TAG, "line 130");
+        Rect previewFrame = cameraManager.getFramingRectInPreview();
+        Log.i(LOG_TAG, "line 132");
         float scaleX = frame.width() / (float) previewFrame.width();
         float scaleY = frame.height() / (float) previewFrame.height();
 

@@ -16,6 +16,10 @@
 
 package com.google.zxing.common;
 
+import android.util.Log;
+
+import com.google.zxing.client.android.camera.CameraManager;
+
 /**
  * <p>Represents a 2D matrix of bits. In function arguments below, and throughout the common
  * module, x is the column position, and y is the row position. The ordering is always x, y.
@@ -37,14 +41,16 @@ public final class BitMatrix {
   private final int height;
   private final int rowSize;
   private final int[] bits;
-
+  private static final String TAG = BitMatrix.class.getSimpleName();
   // A helper to construct a square matrix.
   public BitMatrix(int dimension) {
     this(dimension, dimension);
   }
 
   public BitMatrix(int width, int height) {
-    if (width < 1 || height < 1) {
+	
+	Log.i(TAG,"The width is " + width);
+	if (width < 1 || height < 1) {
       throw new IllegalArgumentException("Both dimensions must be greater than 0");
     }
     this.width = width;

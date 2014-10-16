@@ -16,6 +16,8 @@
 
 package com.google.zxing.common;
 
+import android.util.Log;
+
 import com.google.zxing.Binarizer;
 import com.google.zxing.LuminanceSource;
 import com.google.zxing.NotFoundException;
@@ -46,7 +48,7 @@ public final class HybridBinarizer extends GlobalHistogramBinarizer {
   private static final int BLOCK_SIZE_MASK = BLOCK_SIZE - 1;   // ...0011...11
   private static final int MINIMUM_DIMENSION = BLOCK_SIZE * 5;
   private static final int MIN_DYNAMIC_RANGE = 24;
-
+  private static final String TAG = "HybridBinarizer";
   private BitMatrix matrix;
 
   public HybridBinarizer(LuminanceSource source) {
@@ -66,6 +68,10 @@ public final class HybridBinarizer extends GlobalHistogramBinarizer {
     LuminanceSource source = getLuminanceSource();
     int width = source.getWidth();
     int height = source.getHeight();
+    Log.i(TAG,"The minimum distance is: " + MINIMUM_DIMENSION);
+    Boolean bool = (source == null);
+    Log.i(TAG,"The source width/height is: " + width + " and " + height);
+    Log.i(TAG,"The source is null?: " + bool);
     if (width >= MINIMUM_DIMENSION && height >= MINIMUM_DIMENSION) {
       byte[] luminances = source.getMatrix();
       int subWidth = width >> BLOCK_SIZE_POWER;

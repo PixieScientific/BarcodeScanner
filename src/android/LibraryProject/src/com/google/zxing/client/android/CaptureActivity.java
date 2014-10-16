@@ -606,8 +606,8 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 	  ResultPoint[] points = rawResult.getResultPoints();
 	  String resultPointString = "?name=" ;
 	  for (ResultPoint point : points) {
-		  float pointX = point.getX()+CameraManager.get().leftOffset;
-		  float pointY = point.getY()+CameraManager.get().topOffset;
+		  float pointX = point.getX()+cameraManager.leftOffset;
+		  float pointY = point.getY()+cameraManager.topOffset;
 		  resultPointString += "(" + pointX + "," + pointY + ")";
 	  }
 	  resultPointString += "?resultstring=";

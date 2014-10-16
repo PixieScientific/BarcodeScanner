@@ -16,6 +16,8 @@
 
 package com.google.zxing.common;
 
+import android.util.Log;
+
 import com.google.zxing.Binarizer;
 import com.google.zxing.LuminanceSource;
 import com.google.zxing.NotFoundException;
@@ -37,6 +39,7 @@ public class GlobalHistogramBinarizer extends Binarizer {
   private static final int LUMINANCE_SHIFT = 8 - LUMINANCE_BITS;
   private static final int LUMINANCE_BUCKETS = 1 << LUMINANCE_BITS;
   private static final byte[] EMPTY = new byte[0];
+  private static final String TAG = GlobalHistogramBinarizer.class.getSimpleName();
 
   private byte[] luminances;
   private final int[] buckets;
@@ -88,6 +91,9 @@ public class GlobalHistogramBinarizer extends Binarizer {
     LuminanceSource source = getLuminanceSource();
     int width = source.getWidth();
     int height = source.getHeight();
+    Log.i(TAG,"The Source is " + source.toString());
+    Log.i(TAG,"The Width is " + width);
+    Log.i(TAG,"The Height is " + height);
     BitMatrix matrix = new BitMatrix(width, height);
 
     // Quickly calculates the histogram by sampling four rows from the image. This proved to be

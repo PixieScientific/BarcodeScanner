@@ -16,6 +16,8 @@
 
 package com.google.zxing;
 
+import android.util.Log;
+
 import com.google.zxing.common.BitArray;
 import com.google.zxing.common.BitMatrix;
 
@@ -30,9 +32,11 @@ import com.google.zxing.common.BitMatrix;
 public abstract class Binarizer {
 
   private final LuminanceSource source;
+  private static final String TAG = "Binarizer";
 
   protected Binarizer(LuminanceSource source) {
     this.source = source;
+    Log.i(TAG,"Luminance Source Set to " + source.getWidth());
   }
 
   public final LuminanceSource getLuminanceSource() {
