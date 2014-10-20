@@ -31,7 +31,7 @@ public final class Intents {
      * Send this intent to open the Barcodes app in scanning mode, find a barcode, and return
      * the results.
      */
-	 public static final String ACTION = "com.pixiescientific.plugins.barcodescanner.SCAN";
+	 public static final String ACTION = "com.phonegap.plugins.barcodescanner.SCAN";
 
     /**
      * By default, sending this will decode all barcodes that we understand. However it
@@ -176,7 +176,7 @@ public final class Intents {
      * Send this intent to encode a piece of data as a QR code and display it full screen, so
      * that another person can scan the barcode from your screen.
      */
-    public static final String ACTION = "com.pixiescientific.plugins.barcodescanner.ENCODE";
+    public static final String ACTION = "com.phonegap.plugins.barcodescanner.ENCODE";
 
     /**
      * The data to encode. Use {@link android.content.Intent#putExtra(String, String)} or
