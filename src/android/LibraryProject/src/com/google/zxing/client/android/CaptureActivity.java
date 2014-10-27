@@ -96,7 +96,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 
   private static final long DEFAULT_INTENT_RESULT_DURATION_MS = 1500L;
   private static final long BULK_MODE_SCAN_DELAY_MS = 1000L;
-
+  public Boolean tooDark;
   private static final String PACKAGE_NAME = "com.google.zxing.client.android";
   private static final String PRODUCT_SEARCH_URL_PREFIX = "http://www.google";
   private static final String PRODUCT_SEARCH_URL_SUFFIX = "/m/products/scan";
@@ -130,6 +130,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
   private HistoryManager historyManager;
   private InactivityTimer inactivityTimer;
   private BeepManager beepManager;
+  private AmbientLightManager ambientLightManager;
 
   ViewfinderView getViewfinderView() {
     return viewfinderView;
@@ -152,13 +153,14 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     Window window = getWindow();
     window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     setContentView(fakeR.getId("layout", "capture"));
-
+    
     hasSurface = false;
     historyManager = new HistoryManager(this);
     historyManager.trimHistory();
     inactivityTimer = new InactivityTimer(this);
     beepManager = new BeepManager(this);
-
+    ambientLightManager = new AmbientLightManager(this);
+    tooDark = false;
     PreferenceManager.setDefaultValues(this, fakeR.getId("xml", "preferences"), false);
 
     //showHelpOnFirstLaunch();
@@ -197,6 +199,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     }
 
     beepManager.updatePrefs();
+    ambientLightManager.start(cameraManager);
 
     inactivityTimer.onResume();
 
@@ -278,6 +281,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
       handler = null;
     }
     inactivityTimer.onPause();
+    ambientLightManager.stop();
     cameraManager.closeDriver();
     if (!hasSurface) {
       SurfaceView surfaceView = (SurfaceView) findViewById(fakeR.getId("id", "preview_view"));
@@ -572,104 +576,115 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     if (barcode != null) {
       viewfinderView.drawResultBitmap(barcode);
     }
+    Log.i("VFV", "tooDark: " + ambientLightManager.tooDark);
+    Log.i("VFV", "too dark?: " + ambientLightManager.tooDark);
+    if(ambientLightManager.tooDark){
+    	//viewfinderView.too_dark = true;
+    	tooDark = true;
+    	handler.restartPreviewAndDecode();
+    	//viewfinderView.drawTooDarkWarning();
+    }else{
+    	tooDark = false;
+    	long resultDurationMS;
+    	if (getIntent() == null) {
+    		resultDurationMS = DEFAULT_INTENT_RESULT_DURATION_MS;
+    	} else {
+    		resultDurationMS = getIntent().getLongExtra(Intents.Scan.RESULT_DISPLAY_DURATION_MS,
+    				DEFAULT_INTENT_RESULT_DURATION_MS);
+    	}
 
-    long resultDurationMS;
-    if (getIntent() == null) {
-      resultDurationMS = DEFAULT_INTENT_RESULT_DURATION_MS;
-    } else {
-      resultDurationMS = getIntent().getLongExtra(Intents.Scan.RESULT_DISPLAY_DURATION_MS,
-                                                  DEFAULT_INTENT_RESULT_DURATION_MS);
-    }
+    	// Since this message will only be shown for a second, just tell the user what kind of
+    	// barcode was found (e.g. contact info) rather than the full contents, which they won't
+    	// have time to read.
 
-    // Since this message will only be shown for a second, just tell the user what kind of
-    // barcode was found (e.g. contact info) rather than the full contents, which they won't
-    // have time to read.
-    
 
-    if (copyToClipboard && !resultHandler.areContentsSecure()) {
-      ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-      CharSequence text = resultHandler.getDisplayContents();
-      if (text != null) {
-        clipboard.setText(text);
-      }
-    }
+    	if (copyToClipboard && !resultHandler.areContentsSecure()) {
+    		ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+    		CharSequence text = resultHandler.getDisplayContents();
+    		if (text != null) {
+    			clipboard.setText(text);
+    		}
+    	}
 
-    if (source == IntentSource.NATIVE_APP_INTENT) {
-      
-      // Hand back whatever action they requested - this can be changed to Intents.Scan.ACTION when
-      // the deprecated intent is retired.
-      Intent intent = new Intent(getIntent().getAction());
-      intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-      intent.putExtra(Intents.Scan.RESULT, rawResult.toString());
-      intent.putExtra(Intents.Scan.RESULT_FORMAT, rawResult.getBarcodeFormat().toString());
-      byte[] rawBytes = rawResult.getRawBytes();
-	  ResultPoint[] points = rawResult.getResultPoints();
-	  String resultPointString = "?name=" ;
-	  for (ResultPoint point : points) {
-		  float pointX = point.getX()+cameraManager.leftOffset;
-		  float pointY = point.getY()+cameraManager.topOffset;
-		  resultPointString += "(" + pointX + "," + pointY + ")";
-	  }
-	  resultPointString += "?resultstring=";
-	  String resultText = rawResult.getText();
-	  int index = resultText.indexOf("?");
-	  String textQuery = resultText.substring(index);
-	  resultPointString += textQuery;
-	  long unixTime = System.currentTimeMillis() / 1000L;
-	  String timestamp = String.valueOf(unixTime);
-	  resultPointString += "?timestamp=" + timestamp;
-	  intent.putExtra(Intents.Scan.RESULT_POINTS, resultPointString);
-      if (rawBytes != null && rawBytes.length > 0) {
-        intent.putExtra(Intents.Scan.RESULT_BYTES, rawBytes);
-      }
-      Map<ResultMetadataType,?> metadata = rawResult.getResultMetadata();
-      if (metadata != null) {
-        if (metadata.containsKey(ResultMetadataType.UPC_EAN_EXTENSION)) {
-          intent.putExtra(Intents.Scan.RESULT_UPC_EAN_EXTENSION,
-                          metadata.get(ResultMetadataType.UPC_EAN_EXTENSION).toString());
-        }
-        Integer orientation = (Integer) metadata.get(ResultMetadataType.ORIENTATION);
-        if (orientation != null) {
-          intent.putExtra(Intents.Scan.RESULT_ORIENTATION, orientation.intValue());
-        }
-        String ecLevel = (String) metadata.get(ResultMetadataType.ERROR_CORRECTION_LEVEL);
-        if (ecLevel != null) {
-          intent.putExtra(Intents.Scan.RESULT_ERROR_CORRECTION_LEVEL, ecLevel);
-        }
-        Iterable<byte[]> byteSegments = (Iterable<byte[]>) metadata.get(ResultMetadataType.BYTE_SEGMENTS);
-        if (byteSegments != null) {
-          int i = 0;
-          for (byte[] byteSegment : byteSegments) {
-            intent.putExtra(Intents.Scan.RESULT_BYTE_SEGMENTS_PREFIX + i, byteSegment);
-            i++;
-          }
-        }
-      }
-      sendReplyMessage(fakeR.getId("id", "return_scan_result"), intent, resultDurationMS);
-      
-    } else if (source == IntentSource.PRODUCT_SEARCH_LINK) {
-      
-      // Reformulate the URL which triggered us into a query, so that the request goes to the same
-      // TLD as the scan URL.
-      int end = sourceUrl.lastIndexOf("/scan");
-      String replyURL = sourceUrl.substring(0, end) + "?q=" + resultHandler.getDisplayContents() + "&source=zxing";      
-      sendReplyMessage(fakeR.getId("id", "launch_product_query"), replyURL, resultDurationMS);
-      
-    } else if (source == IntentSource.ZXING_LINK) {
-      
-      // Replace each occurrence of RETURN_CODE_PLACEHOLDER in the returnUrlTemplate
-      // with the scanned code. This allows both queries and REST-style URLs to work.
-      if (returnUrlTemplate != null) {
-        CharSequence codeReplacement = returnRaw ? rawResult.getText() : resultHandler.getDisplayContents();
-        try {
-          codeReplacement = URLEncoder.encode(codeReplacement.toString(), "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-          // can't happen; UTF-8 is always supported. Continue, I guess, without encoding
-        }
-        String replyURL = returnUrlTemplate.replace(RETURN_CODE_PLACEHOLDER, codeReplacement);
-        sendReplyMessage(fakeR.getId("id", "launch_product_query"), replyURL, resultDurationMS);
-      }
-      
+    	if (source == IntentSource.NATIVE_APP_INTENT) {
+
+    		// Hand back whatever action they requested - this can be changed to Intents.Scan.ACTION when
+    		// the deprecated intent is retired.
+    		Intent intent = new Intent(getIntent().getAction());
+    		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+    		intent.putExtra(Intents.Scan.RESULT, rawResult.toString());
+    		intent.putExtra(Intents.Scan.RESULT_FORMAT, rawResult.getBarcodeFormat().toString());
+    		byte[] rawBytes = rawResult.getRawBytes();
+    		ResultPoint[] points = rawResult.getResultPoints();
+    		String resultPointString = "?name=" ;
+    		for (ResultPoint point : points) {
+    			float pointX = point.getX()+cameraManager.leftOffset;
+    			float pointY = point.getY()+cameraManager.topOffset;
+    			resultPointString += "(" + pointX + "," + pointY + ")";
+    		}
+    		resultPointString += "?resultstring=";
+    		String resultText = rawResult.getText();
+    		int index = resultText.indexOf("?");
+    		String textQuery = resultText.substring(index);
+    		resultPointString += textQuery;
+    		long unixTime = System.currentTimeMillis() / 1000L;
+    		String timestamp = String.valueOf(unixTime);
+    		resultPointString += "?timestamp=" + timestamp;
+    		intent.putExtra(Intents.Scan.RESULT_POINTS, resultPointString);
+    		if (rawBytes != null && rawBytes.length > 0) {
+    			intent.putExtra(Intents.Scan.RESULT_BYTES, rawBytes);
+    		}
+    		Boolean tooDark = ambientLightManager.tooDark;
+    		intent.putExtra(Intents.Scan.TOO_DARK, tooDark);
+    		Map<ResultMetadataType,?> metadata = rawResult.getResultMetadata();
+    		if (metadata != null) {
+    			if (metadata.containsKey(ResultMetadataType.UPC_EAN_EXTENSION)) {
+    				intent.putExtra(Intents.Scan.RESULT_UPC_EAN_EXTENSION,
+    						metadata.get(ResultMetadataType.UPC_EAN_EXTENSION).toString());
+    			}
+    			Integer orientation = (Integer) metadata.get(ResultMetadataType.ORIENTATION);
+    			if (orientation != null) {
+    				intent.putExtra(Intents.Scan.RESULT_ORIENTATION, orientation.intValue());
+    			}
+    			String ecLevel = (String) metadata.get(ResultMetadataType.ERROR_CORRECTION_LEVEL);
+    			if (ecLevel != null) {
+    				intent.putExtra(Intents.Scan.RESULT_ERROR_CORRECTION_LEVEL, ecLevel);
+    			}
+    			Iterable<byte[]> byteSegments = (Iterable<byte[]>) metadata.get(ResultMetadataType.BYTE_SEGMENTS);
+    			if (byteSegments != null) {
+    				int i = 0;
+    				for (byte[] byteSegment : byteSegments) {
+    					intent.putExtra(Intents.Scan.RESULT_BYTE_SEGMENTS_PREFIX + i, byteSegment);
+    					i++;
+    				}
+    			}
+    		}
+    		sendReplyMessage(fakeR.getId("id", "return_scan_result"), intent, resultDurationMS);
+
+    	} else if (source == IntentSource.PRODUCT_SEARCH_LINK) {
+
+    		// Reformulate the URL which triggered us into a query, so that the request goes to the same
+    		// TLD as the scan URL.
+    		int end = sourceUrl.lastIndexOf("/scan");
+    		String replyURL = sourceUrl.substring(0, end) + "?q=" + resultHandler.getDisplayContents() + "&source=zxing";      
+    		sendReplyMessage(fakeR.getId("id", "launch_product_query"), replyURL, resultDurationMS);
+
+    	} else if (source == IntentSource.ZXING_LINK) {
+
+    		// Replace each occurrence of RETURN_CODE_PLACEHOLDER in the returnUrlTemplate
+    		// with the scanned code. This allows both queries and REST-style URLs to work.
+    		if (returnUrlTemplate != null) {
+    			CharSequence codeReplacement = returnRaw ? rawResult.getText() : resultHandler.getDisplayContents();
+    			try {
+    				codeReplacement = URLEncoder.encode(codeReplacement.toString(), "UTF-8");
+    			} catch (UnsupportedEncodingException e) {
+    				// can't happen; UTF-8 is always supported. Continue, I guess, without encoding
+    			}
+    			String replyURL = returnUrlTemplate.replace(RETURN_CODE_PLACEHOLDER, codeReplacement);
+    			sendReplyMessage(fakeR.getId("id", "launch_product_query"), replyURL, resultDurationMS);
+    		}
+
+    	}
     }
   }
   
@@ -758,6 +773,6 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
   }
 
   public void drawViewfinder() {
-    viewfinderView.drawViewfinder();
+    viewfinderView.drawViewfinder(tooDark);
   }
 }

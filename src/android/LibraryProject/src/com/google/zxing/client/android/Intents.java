@@ -115,10 +115,15 @@ public final class Intents {
     public static final String RESULT_FORMAT = "SCAN_RESULT_FORMAT";
 
     /**
-     * Call intent.getStringExtra(RESULT_POINTS) to determine which barcode format was found.
+     * Call intent.getStringExtra(RESULT_POINTS) to determine the result points found.
      * See Contents.Format for possible values.
      */
      public static final String RESULT_POINTS = "RESULT_POINTS";
+
+     /**
+      * Call intent.getStringExtra(TOO_DARK) to determine whether the image was too dark.
+      */
+      public static final String TOO_DARK = "TOO_DARK";
     
     /**
      * Call {@link android.content.Intent#getStringExtra(String)} with {@link #RESULT_UPC_EAN_EXTENSION}

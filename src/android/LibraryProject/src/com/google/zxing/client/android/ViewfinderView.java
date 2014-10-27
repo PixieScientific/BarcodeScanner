@@ -60,6 +60,7 @@ public final class ViewfinderView extends View {
   private int scannerAlpha;
   private List<ResultPoint> possibleResultPoints;
   private List<ResultPoint> lastPossibleResultPoints;
+  private Boolean too_dark;
 
   private static FakeR fakeR;
 
@@ -70,6 +71,7 @@ public final class ViewfinderView extends View {
 	fakeR = new FakeR(context);
 
     // Initialize these once for performance rather than calling them every time in onDraw().
+	Log.i("VFV", "initialized");
     paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     Resources resources = getResources();
     maskColor = resources.getColor(fakeR.getId("color", "viewfinder_mask"));
@@ -79,6 +81,7 @@ public final class ViewfinderView extends View {
     scannerAlpha = 0;
     possibleResultPoints = new ArrayList<ResultPoint>(5);
     lastPossibleResultPoints = null;
+    too_dark = false;
   }
 
   public void setCameraManager(CameraManager cameraManager) {
@@ -87,27 +90,40 @@ public final class ViewfinderView extends View {
 
   @Override
   public void onDraw(Canvas canvas) {
-    if (cameraManager == null) {
-      return; // not ready yet, early draw before done configuring
-    }
+	  Log.i("VFV","called: " + too_dark);
+    
     Rect frame = cameraManager.getFramingRect();
     if (frame == null) {
       return;
     }
     int width = canvas.getWidth();
     int height = canvas.getHeight();
-
+    if(too_dark){
+    	  Log.i("VFV","drawing too dark");
+    	  paint.setColor(Color.rgb(255,255,0));
+          int middleX = (width) / 2;
+          int middleY = (height) / 2;
+          canvas.save();
+          canvas.rotate(-90, middleX, middleY);
+          paint.setTextAlign(Paint.Align.CENTER);
+          paint.setTextSize(width/32);
+    	  canvas.drawText("The image is too dark", middleX, middleY + frame.width() - 100, paint);
+    	  canvas.restore();
+      }
+    if (cameraManager == null && !too_dark) {
+        return; // not ready yet, early draw before done configuring
+      }
     // Draw the exterior (i.e. outside the framing rect) darkened
     paint.setColor(resultBitmap != null ? resultColor : maskColor);
     canvas.drawRect(0, 0, width, frame.top, paint);
     canvas.drawRect(0, frame.top, frame.left, frame.bottom + 1, paint);
     canvas.drawRect(frame.right + 1, frame.top, width, frame.bottom + 1, paint);
     canvas.drawRect(0, frame.bottom + 1, width, height, paint);
-
-    if (resultBitmap != null) {
+    Log.i("VFV","too_dark_in_VFV?: " + too_dark);
+	if (resultBitmap != null) {
       // Draw the opaque result bitmap over the scanning rectangle
       paint.setAlpha(CURRENT_POINT_OPACITY);
-      canvas.drawBitmap(resultBitmap, null, frame, paint);
+      canvas.drawBitmap(resultBitmap, null, frame, paint); 
     } else {
 
     	// Draw a two pixel solid black border inside the framing rect
@@ -169,7 +185,10 @@ public final class ViewfinderView extends View {
       }
     }
 
-  public void drawViewfinder() {
+  public void drawViewfinder(Boolean tooDark) {
+	Log.i("VFV", "drawViewFinderCalled: " + tooDark);
+	too_dark = tooDark;
+	
     Bitmap resultBitmap = this.resultBitmap;
     this.resultBitmap = null;
     if (resultBitmap != null) {
@@ -187,7 +206,7 @@ public final class ViewfinderView extends View {
     resultBitmap = barcode;
     invalidate();
   }
-
+  
   public void addPossibleResultPoint(ResultPoint point) {
     List<ResultPoint> points = possibleResultPoints;
     synchronized (points) {

@@ -237,17 +237,23 @@ public final class CameraManager {
         return null;
       }
       int width = screenResolution.x * 3 / 4;
+	  int height = screenResolution.y * 3 / 4;
       if (width < MIN_FRAME_WIDTH) {
         width = MIN_FRAME_WIDTH;
       } else if (width > MAX_FRAME_WIDTH) {
         width = MAX_FRAME_WIDTH;
       }
-      int height = screenResolution.y * 3 / 4;
-      if (height < MIN_FRAME_HEIGHT) {
-        height = MIN_FRAME_HEIGHT;
-      } else if (height > MAX_FRAME_HEIGHT) {
-        height = MAX_FRAME_HEIGHT;
-      }
+	  if (height<width){
+		  if (height < MIN_FRAME_HEIGHT) {
+			  height = MIN_FRAME_HEIGHT;
+		  } else if (height > MAX_FRAME_HEIGHT) {
+			  height = MAX_FRAME_HEIGHT;
+		  }
+		  width = height;
+	  } else {
+		  height = width;
+	  }
+		
       int leftOffset = (screenResolution.x - width) / 2;
       int topOffset = (screenResolution.y - height) / 2;
       framingRect = new Rect(leftOffset, topOffset, leftOffset + width, topOffset + height);
@@ -273,20 +279,13 @@ public final class CameraManager {
         // Called early, before init even finished
         return null;
       }
-      int pixelRatioX = cameraResolution.x/screenResolution.x;
-      int pixelRatioY = cameraResolution.y/screenResolution.y;
-      rect.left = rect.left * pixelRatioX;
-      rect.right = rect.right * pixelRatioX;
-      rect.top = rect.top * pixelRatioY;
-      rect.bottom = rect.bottom * pixelRatioY;
+      rect.left = rect.left * cameraResolution.x / screenResolution.x;
+      rect.right = rect.right * cameraResolution.x / screenResolution.x;
+      rect.top = rect.top * cameraResolution.y / screenResolution.y;
+      rect.bottom = rect.bottom * cameraResolution.y / screenResolution.y;
       framingRectInPreview = rect;
     }
     return framingRectInPreview;
-  }
-  
-  public Point getScreenResolution() {
-	Point screenResolution = configManager.getScreenResolution();
-	return screenResolution;
   }
 
   /**
